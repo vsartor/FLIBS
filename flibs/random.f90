@@ -10,6 +10,7 @@
 !!   and function description comments to check for those instances.
 
 module random
+    use math
     implicit none
 
     ! Unit ID to be used for opening the `urandom` device
@@ -213,5 +214,330 @@ subroutine rmvnorm(n, m, mu, sigma, y)
         y(i,:) = z + mu
     end do
 end subroutine rmvnorm
+
+!! Function: rexp1
+!!
+!! Generates a single value from the standard exponential
+!! distribution.
+!!
+!! Input:
+!!   * None.
+!! Output:
+!!   * A random positive value.
+function rexp1()
+    implicit none
+
+    real*8 :: rexp1
+
+    rexp1 = -log(randf())
+end function rexp1
+
+!! Function: rgamma1
+!!
+!! Returns a value from a gamma distribution.
+!! Based on implementation from Rmath project (GPL v2).
+!! 
+!! Input:
+!!   * a:    The shape parameter
+!!   * rate: The rate parameter
+!! Output:
+!!   * A positive random value.
+function rgamma1(a, rate) result(ret_val)
+    implicit none
+
+    real*8, parameter  :: sqrt32 =  5.656854d0
+    real*8, parameter  :: exp_m1 =  0.36787944117144232159d0
+    real*8, parameter  :: q1     =  0.04166669d0
+    real*8, parameter  :: q2     =  0.02083148d0
+    real*8, parameter  :: q3     =  0.00801191d0
+    real*8, parameter  :: q4     =  0.00144121d0
+    real*8, parameter  :: q5     = -7.3880d-5
+    real*8, parameter  :: q6     =  2.4511d-4
+    real*8, parameter  :: q7     =  2.4240d-4
+    real*8, parameter  :: a1     =  0.3333333d0
+    real*8, parameter  :: a2     = -0.2500030d0
+    real*8, parameter  :: a3     =  0.2000062d0
+    real*8, parameter  :: a4     = -0.1662921d0
+    real*8, parameter  :: a5     =  0.1423657d0
+    real*8, parameter  :: a6     = -0.1367177d0
+    real*8, parameter  :: a7     =  0.1233795d0
+
+    real*8, intent(in) :: a, rate
+    real*8             :: ret_val
+
+    real*8             :: scale, s, s2, d, q0, b, si, c
+    real*8             :: e, p, q, r, t, u, v, w, x
+
+    if (a .le. 0 .or. rate .le. 0) then
+        ret_val = 0d0
+        goto 600
+    end if
+
+    scale = 1d0 / rate
+
+    ! -- GS algorithm for parameters a < 1 --
+    if (a .lt. 1) then
+        e = 1d0 + exp_m1 * a
+        do
+            p = e * randf()
+            if (p .ge. 1d0) then
+                x = -log((e - p) / a)
+                if (rexp1() .ge. (1d0 - a) * log(x)) then
+                    exit
+                end if
+            else
+                x = exp(log(p) / a)
+                if (rexp1() .ge. x) then
+                    exit
+                end if
+            end if
+        end do
+        ret_val = scale * x
+        goto 600
+    end if
+
+    ! -- GD algorithm for parameters a >= 1 --
+
+    s2 = a - 0.5d0
+    s  = sqrt(s2)
+    d  = sqrt32 - s * 12d0
+
+    t       = rnorm1(0d0, 1d0)
+    x       = s + 0.5d0 * t
+    ret_val = x * x
+    if (t .ge. 0) then
+        ret_val = scale * ret_val
+        goto 600
+    end if
+
+    u = randf()
+    if (d * u .le. t * t * t) then
+        ret_val = scale * ret_val
+        goto 600
+    end if
+
+    r  = 1d0 / a
+    q0 = ((((((q7*r+q6)*r+q5)*r+q4)*r+q3)*r+q2)*r+q1)*r
+    if (a .le. 3.686d0) then
+        b  = 0.463d0 + s + 0.178d0 * s2
+        si = 1.235d0
+        c  = 0.195d0 / s - 0.079d0 + 0.16d0 * s
+    else if (a .le. 13.022) then
+        b  = 1.654d0 + 0.0076d0 * s2
+        si = 1.68d0 / s + 0.275d0
+        c  = 0.062d0 / s + 0.024d0
+    else
+        b  = 1.77d0
+        si = 0.75d0
+        c  = 0.1515d0 / s
+    end if
+
+    if (x .gt. 0) then
+        v = t / (s + s)
+        if (abs(v) .le. 0.25d0) then
+            q = q0+0.5d0*t*t*((((((a7*v+a6)*v+a5)*v+a4)*v+a3)*v+a2)*v+a1)*v
+        else
+            q = q0-s*t+0.25d0*t*t+(s2+s2)*log(1d0+v)
+        end if
+
+        if (log(1d0-u) .le. q) then
+            ret_val = scale * ret_val
+            goto 600
+        end if
+    end if
+
+    do
+        e = rexp1()
+        u = randf()
+        u = u + u - 1d0
+        if (u .lt. 0) then
+            t = b - si * e
+        else
+            t = b + si * e
+        end if
+
+        if (t .ge. -0.71874483771719d0) then
+            v = t / (s + s)
+            if (abs(v) .le. 0.25d0) then
+                q = q0+0.5d0*t*t*((((((a7*v+a6)*v+a5)*v+a4)*v+a3)*v+a2)*v+a1)*v
+            else
+                q = q0-s*t+0.25d0*t*t+(s2+s2)*log(1d0 + v)
+            end if
+            if (q .gt. 0) then
+                w = expm1(q)
+                if (c * abs(u) .le. w * exp(e - 0.5d0 * t * t)) then
+                    exit
+                end if
+            end if
+        end if
+    end do
+
+    x = s + 0.5d0 * t
+    ret_val = scale * x * x
+    goto 600
+
+    ! Quick exit statement
+600 continue
+end function rgamma1
+
+!! Function: rgamma
+!!
+!! Returns a vector with values from a gamma distribution.
+!! Based on implementation from Rmath project (GPL v2).
+!!
+!! Input:
+!!   * n:    The sample size required.
+!!   * a:    The shape parameter
+!!   * rate: The rate parameter
+!! Output:
+!!   * The vector with positive random values.
+function rgamma(n, a, rate) result(ret_val)
+    implicit none
+
+    real*8, parameter     :: sqrt32 =  5.656854d0
+    real*8, parameter     :: exp_m1 =  0.36787944117144232159d0
+    real*8, parameter     :: q1     =  0.04166669d0
+    real*8, parameter     :: q2     =  0.02083148d0
+    real*8, parameter     :: q3     =  0.00801191d0
+    real*8, parameter     :: q4     =  0.00144121d0
+    real*8, parameter     :: q5     = -7.3880d-5
+    real*8, parameter     :: q6     =  2.4511d-4
+    real*8, parameter     :: q7     =  2.4240d-4
+    real*8, parameter     :: a1     =  0.3333333d0
+    real*8, parameter     :: a2     = -0.2500030d0
+    real*8, parameter     :: a3     =  0.2000062d0
+    real*8, parameter     :: a4     = -0.1662921d0
+    real*8, parameter     :: a5     =  0.1423657d0
+    real*8, parameter     :: a6     = -0.1367177d0
+    real*8, parameter     :: a7     =  0.1233795d0
+
+    integer*8, intent(in) :: n
+    real*8,    intent(in) :: a, rate
+    real*8                :: ret_val(n)
+
+    integer*8             :: i
+    real*8                :: scale, s, s2, d, q0, b, si, c
+    real*8                :: e, p, q, r, t, u, v, w, x
+
+    if (a .le. 0 .or. rate .le. 0) then
+        ret_val(1:n) = 0d0
+        goto 600
+    end if
+
+    scale = 1d0 / rate
+
+    ! -- GS algorithm for parameters a < 1 --
+    if (a .lt. 1) then
+        do i = 1, n
+            e = 1d0 + exp_m1 * a
+            do
+                p = e * randf()
+                if (p .ge. 1d0) then
+                    x = -log((e - p) / a)
+                    if (rexp1() .ge. (1d0 - a) * log(x)) then
+                        exit
+                    end if
+                else
+                    x = exp(log(p) / a)
+                    if (rexp1() .ge. x) then
+                        exit
+                    end if
+                end if
+            end do
+            ret_val(i) = scale * x
+        end do
+        goto 600
+    end if
+
+    ! -- GD algorithm for parameters a >= 1 --
+
+    ! Pre-compute constant values (Block 1 and 2)
+    
+    ! Block 1
+    s2 = a - 0.5d0
+    s  = sqrt(s2)
+    d  = sqrt32 - s * 12d0
+
+    ! Block 2
+    r  = 1d0 / a
+    q0 = ((((((q7*r+q6)*r+q5)*r+q4)*r+q3)*r+q2)*r+q1)*r
+    if (a .le. 3.686d0) then
+        b  = 0.463d0 + s + 0.178d0 * s2
+        si = 1.235d0
+        c  = 0.195d0 / s - 0.079d0 + 0.16d0 * s
+    else if (a .le. 13.022) then
+        b  = 1.654d0 + 0.0076d0 * s2
+        si = 1.68d0 / s + 0.275d0
+        c  = 0.062d0 / s + 0.024d0
+    else
+        b  = 1.77d0
+        si = 0.75d0
+        c  = 0.1515d0 / s
+    end if
+
+    ! Actual generation loop
+
+    outer: do i = 1, n
+        t          = rnorm1(0d0, 1d0)
+        x          = s + 0.5d0 * t
+        ret_val(i) = x * x
+        if (t .ge. 0) then
+            ret_val(i) = scale * ret_val(i)
+            cycle outer
+        end if
+
+        u = randf()
+        if (d * u .le. t * t * t) then
+            ret_val(i) = scale * ret_val(i)
+            cycle outer
+        end if
+
+        if (x .gt. 0) then
+            v = t / (s + s)
+            if (abs(v) .le. 0.25d0) then
+                q = q0+0.5d0*t*t*((((((a7*v+a6)*v+a5)*v+a4)*v+a3)*v+a2)*v+a1)*v
+            else
+                q = q0-s*t+0.25d0*t*t+(s2+s2)*log(1d0+v)
+            end if
+
+            if (log(1d0-u) .le. q) then
+                ret_val(i) = scale * ret_val(i)
+                cycle outer
+            end if
+        end if
+
+        inner: do
+            e = rexp1()
+            u = randf()
+            u = u + u - 1d0
+            if (u .lt. 0) then
+                t = b - si * e
+            else
+                t = b + si * e
+            end if
+
+            if (t .ge. -0.71874483771719d0) then
+                v = t / (s + s)
+                if (abs(v) .le. 0.25d0) then
+                    q = q0+0.5d0*t*t*((((((a7*v+a6)*v+a5)*v+a4)*v+a3)*v+a2)*v+a1)*v
+                else
+                    q = q0-s*t+0.25d0*t*t+(s2+s2)*log(1d0 + v)
+                end if
+                if (q .gt. 0) then
+                    w = expm1(q)
+                    if (c * abs(u) .le. w * exp(e - 0.5d0 * t * t)) then
+                        exit inner
+                    end if
+                end if
+            end if
+        end do inner
+
+        x = s + 0.5d0 * t
+        ret_val(i) = scale * x * x
+    end do outer
+
+    ! Quick exit statement
+600 continue
+end function rgamma
 
 end module random
