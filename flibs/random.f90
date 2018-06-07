@@ -175,4 +175,43 @@ function rnorm(n, mu, sigma)
     end do
 end function rnorm
 
+!! Subourtine: rmvnorm
+!!
+!! Returns a matrix with row vectors obtained from a
+!! multivariate normal distribution.
+!!
+!! Parameters:
+!!   * n [in]:     The number of samples desired.
+!!   * m [--]:     The dimension of mu and order of sigma.
+!!   * mu [in]:    The mean vector of the distribution.
+!!   * sigma [in]: The covariance matrix of the distribution.
+!!   * y [out]:    The matrix with the random values.
+subroutine rmvnorm(n, m, mu, sigma, y)
+    implicit none
+
+    integer,   intent(in)  :: m
+    integer*8, intent(in)  :: n
+    real*8,    intent(in)  :: mu(m), sigma(m,m)
+    real*8,    intent(out) :: y(n,m)
+
+    integer                :: errcode
+    integer*8              :: i
+    real*8                 :: z(m)
+
+    ! Cholesky decomposition of the covariance matrix into lower
+    ! triangular form, stored overriding the sigma matrix.
+    call dpotrf2('L', m, sigma, m, errcode)
+    if (errcode .ne. 0) then
+        error stop 'Error code from dpotrf2 on rmvnorm.'
+    end if
+
+    do i = 1, n
+        z = rnorm(int(m, 8), 0d0, 1d0)
+        ! Multiply lower triangular matrix to vector. The result
+        ! overwrites the vector z.
+        call dtrmv('L', 'N', 'N', m, sigma, m, z, 1)
+        y(i,:) = z + mu
+    end do
+end subroutine rmvnorm
+
 end module random
