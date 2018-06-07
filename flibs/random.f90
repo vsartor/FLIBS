@@ -90,4 +90,20 @@ function rand64()
     state1 = ishftc(S1, 36)
 end function rand64
 
+!! Function: randf
+!!
+!! Returns a random value between 0 and 1.
+!!
+!! Input:
+!!   * None
+!! Output:
+!!   * A random value between 0 and 1.
+function randf()
+    implicit none
+
+    real*8 :: randf
+
+    randf = (real(rand64(), 8) / 18446744073709551615d0) + 0.5d0
+end function randf
+
 end module random
