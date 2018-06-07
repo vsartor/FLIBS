@@ -17,8 +17,8 @@ FF   = -march=native -O3 -Wall -Wextra -flto
 all: flibs-lib
 
 flibs-lib:
-	$(FC) -c $(FF) flibs/random.f90
+	$(FC) -c $(FF) flibs/random.f90 flibs/math.f90
 	$(BIN) $(LIBS) -c --f90exec=$(FC) --f90flags="$(FF)" \
-	flibs/random.f90                                     \
+	flibs/random.f90 flibs/math.f90                      \
 	-m flibs
 	@rm -rf *.mod *.o
