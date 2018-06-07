@@ -106,4 +106,73 @@ function randf()
     randf = (real(rand64(), 8) / 18446744073709551615d0) + 0.5d0
 end function randf
 
+!! Function: rnorm1
+!!
+!! Returns single normally distributed random value.
+!!
+!! Input:
+!!   * mu:    The mean of the distribution.
+!!   * sigma: The scale of the distribution.
+!! Output:
+!!   * A random value.
+function rnorm1(mu, sigma)
+    implicit none
+
+    real*8,    intent(in) :: mu, sigma
+    real*8                :: rnorm1
+
+    real*8                :: u, v, s
+
+    s = 1.1d0
+    do while (s .ge. 1)
+        u = (real(rand64(), 8) / 18446744073709551615d0) * 2d0
+        v = (real(rand64(), 8) / 18446744073709551615d0) * 2d0
+        s = u*u + v*v
+    end do
+    rnorm1 = u * sqrt(-2 * log(s) / s) * sigma + mu
+end function rnorm1
+
+!! Function: rnorm
+!!
+!! Returns a vector of normally distributed random values.
+!!
+!! Input:
+!!   * n:     The number of values to be generated.
+!!   * mu:    The mean of the distribution.
+!!   * sigma: The scale of the distribution.
+!! Output:
+!!   * A vector with random values.
+function rnorm(n, mu, sigma)
+    implicit none
+
+    integer*8, intent(in) :: n
+    real*8,    intent(in) :: mu, sigma
+    real*8                :: rnorm(n)
+
+    real*8                :: u, v, s, nfac
+    integer*8             :: i
+
+    if (mod(n, 2) .eq. 1) then
+        s = 1.1d0
+        do while (s .ge. 1d0)
+            u = (real(rand64(), 8) / 18446744073709551615d0) * 2d0
+            v = (real(rand64(), 8) / 18446744073709551615d0) * 2d0
+            s = u*u + v*v
+        end do
+        rnorm(n) = u * sqrt(-2 * log(s) / s) * sigma + mu
+    end if
+
+    do i = 2, n, 2
+        s = 1.1d0
+        do while (s .ge. 1d0)
+            u = (real(rand64(), 8) / 18446744073709551615d0) * 2d0
+            v = (real(rand64(), 8) / 18446744073709551615d0) * 2d0
+            s = u*u + v*v
+        end do
+        nfac       = sqrt(-2 * log(s) / s)
+        rnorm(i-1) = u * nfac * sigma + mu
+        rnorm(i)   = v * nfac * sigma + mu
+    end do
+end function rnorm
+
 end module random
