@@ -1,7 +1,6 @@
 !! math.f90
 !! Copyright (C) 2018 Victhor Sartorio
-!! * This Source Code Form is part of the 'dynbayes' project.
-!! * This Source Code Form is part of the 'flibs' project.
+!! * This Source Code Form is part of the FLIBS project.
 !! * This Source Code Form is subject to the terms of the Mozilla Public
 !!   License, v. 2.0. If a copy of the MPL was not distributed with this
 !!   file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -13,6 +12,7 @@ module math
     implicit none
 
 contains
+
 
 !! Function: log1p
 !!
@@ -33,6 +33,7 @@ function log1p(x)
     z     = 1d0 + x
     log1p = log(z) - ((z - 1d0)-x)/z
 end function log1p
+
 
 !! Function: expm1
 !!

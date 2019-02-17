@@ -1,7 +1,6 @@
 !! random.f90
 !! Copyright (C) 2018 Victhor Sartorio
-!! * This Source Code Form is part of the 'dynbayes' project.
-!! * This Source Code Form is part of the 'flibs' project.
+!! * This Source Code Form is part of the FLIBS project.
 !! * This Source Code Form is subject to the terms of the Mozilla Public
 !!   License, v. 2.0. If a copy of the MPL was not distributed with this
 !!   file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -22,25 +21,28 @@ module random
 
 contains
 
+
 !! Subroutine: init_seed
 !!
 !! Initializes the state of the random number generator with random values, read
 !! from the system's random device. Relies on '/dev/urandom' being a readable
-!! file. If, for example, on Windows, do not call this function and look towards
-!! `set_seed` instead.
+!! file. If, for example, on Windows, do not call this function and use `set_seed`
+!! instead.
 subroutine init_seed()
     implicit none
 
-    open  (rdunit, file = '/dev/urandom', access = 'stream', form = 'unformatted')
+    open  (rdunit, file='/dev/urandom', access='stream', form='unformatted')
     read  (rdunit) state0, state1
     close (rdunit)
 end subroutine init_seed
+
 
 !! Subroutine: set_seed
 !!
 !! Initializes the state based on a specific input for reproducible results.
 !! The transformation of the seed into state is based on transformations using
-!! prime numbers and bit rotations followed by jumping three steps.
+!! prime numbers and bit rotations, followed by jumping three steps into the
+!! process.
 !!
 !! Parameters:
 !!   * seed [in]: A 64bit integer from which a state will be determined.
@@ -50,8 +52,7 @@ subroutine set_seed(seed)
     integer*8, intent(in) :: seed
     integer*8 :: x
 
-    x = seed
-    x = 2860486313_8 * x + 5463458053_8
+    x = 2860486313_8 * seed + 5463458053_8
     x = ishftc(x, 55)
     state0 = x
     x = 3267000013_8 * x + 9576890767_8
@@ -62,6 +63,7 @@ subroutine set_seed(seed)
     x = rand64()
     x = rand64()
 end subroutine set_seed
+
 
 !! Function: rand64
 !!
@@ -91,6 +93,7 @@ function rand64()
     state1 = ishftc(S1, 36)
 end function rand64
 
+
 !! Function: randf
 !!
 !! Returns a random value between 0 and 1.
@@ -106,6 +109,7 @@ function randf()
 
     randf = (real(rand64(), 8) / 18446744073709551615d0) + 0.5d0
 end function randf
+
 
 !! Function: rnorm1
 !!
@@ -132,6 +136,7 @@ function rnorm1(mu, sigma)
     end do
     rnorm1 = u * sqrt(-2 * log(s) / s) * sigma + mu
 end function rnorm1
+
 
 !! Function: rnorm
 !!
@@ -176,6 +181,7 @@ function rnorm(n, mu, sigma)
     end do
 end function rnorm
 
+
 !! Subourtine: rmvnorm
 !!
 !! Returns a matrix with row vectors obtained from a
@@ -215,6 +221,7 @@ subroutine rmvnorm(n, m, mu, sigma, y)
     end do
 end subroutine rmvnorm
 
+
 !! Function: rexp1
 !!
 !! Generates a single value from the standard exponential
@@ -232,11 +239,12 @@ function rexp1()
     rexp1 = -log(randf())
 end function rexp1
 
+
 !! Function: rgamma1
 !!
 !! Returns a value from a gamma distribution.
 !! Based on implementation from Rmath project (GPL v2).
-!! 
+!!
 !! Input:
 !!   * a:    The shape parameter
 !!   * rate: The rate parameter
@@ -376,9 +384,9 @@ function rgamma1(a, rate) result(ret_val)
     ret_val = scale * x * x
     goto 600
 
-    ! Quick exit statement
 600 continue
 end function rgamma1
+
 
 !! Function: rgamma
 !!
@@ -452,7 +460,7 @@ function rgamma(n, a, rate) result(ret_val)
     ! -- GD algorithm for parameters a >= 1 --
 
     ! Pre-compute constant values (Block 1 and 2)
-    
+
     ! Block 1
     s2 = a - 0.5d0
     s  = sqrt(s2)
