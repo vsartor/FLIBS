@@ -16,12 +16,9 @@ FF   = -march=native -O3 -Wall -Wextra -flto
 all: flibs-lib
 
 flibs-lib:
-	$(FC) -c $(FF) src/matrix.f90
 	$(FC) -c $(FF) src/math.f90
 	$(FC) -c $(FF) src/random.f90
-	$(FC) -c $(FF) src/tsdlm.f90
 	$(F2PY) $(LIBS) -c --f90exec=$(FC) --f90flags="$(FF)" \
-	    src/random.f90 src/math.f90 src/tsdlm.f90   \
-	    src/matrix.f90                                  \
+	    src/random.f90 src/math.f90 \
 	    -m flibs
 	rm -rf *.mod *.o
